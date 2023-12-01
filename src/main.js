@@ -2,7 +2,7 @@
 // @name         忒星boss直聘批量简历投递+自动发送自定义消息[忒星修复魔改版]
 // @description  忒星boss直聘批量简历投递[忒星修复魔改版]
 // @namespace    yongjiu
-// @version      1.2.0
+// @version      1.2.1
 // @author       maple,Ocyss,忒星
 // @license      Apache License 2.0
 // @run-at       document-start
@@ -1565,7 +1565,7 @@ class JobMessagePageHandler {
             }).catch(() => {
                 // 不报错
             })
-        }, 300);
+        }, 500);
     }
 
     getSelfGreet() {
@@ -1611,8 +1611,11 @@ class JobMessagePageHandler {
     static async getMessageListTag() {
         return new Promise((resolve) => {
             document.querySelector("li.selected").click();
-            const lis = document.querySelector(".user-list").querySelector("div").querySelectorAll("li");
-            resolve(lis);
+            //等待bom渲染后获取
+            setTimeout(() => {
+                const lis = document.querySelector(".user-list").querySelector("div").querySelectorAll("li");
+                resolve(lis);
+            }, 100);
         });
     }
 
