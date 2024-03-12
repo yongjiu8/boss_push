@@ -2,7 +2,7 @@
 // @name         忒星boss直聘批量简历投递+自动发送自定义消息[忒星修复魔改版]
 // @description  忒星boss直聘批量简历投递[忒星修复魔改版]
 // @namespace    yongjiu
-// @version      1.2.1
+// @version      1.2.2
 // @author       maple,Ocyss,忒星
 // @license      Apache License 2.0
 // @run-at       document-start
@@ -317,6 +317,7 @@ class OperationPanel {
         this.batchPushBtn = null
         this.activeSwitchBtn = null
         this.sendSelfGreetSwitchBtn = null
+        this.headhunterSwitchBtn = null
 
         // inputLab
         // 公司名包含输入框lab
@@ -346,6 +347,9 @@ class OperationPanel {
         // 发送自定义招呼语
         this.sendSelfGreet = false;
 
+        // 猎头岗位检测
+        this.headhunterState = true;
+
         // 文档说明
         this.docTextArr = [
             "!加油，相信自己😶‍🌫️",
@@ -354,7 +358,8 @@ class OperationPanel {
             "3.保存配置：保持下方脚本筛选项，用于后续直接使用当前配置。",
             "4.过滤不活跃Boss：打开后会自动过滤掉最近未活跃的Boss发布的工作。以免浪费每天的100次机会。",
             "5.发送自定义招呼语：因为boss不支持将自定义的招呼语设置为默认招呼语。开启表示发送boss默认的招呼语后还会发送自定义招呼语",
-            "6.可以在网站管理中打开通知权限,当停止时会自动发送桌面端通知提醒。",
+            "6.过滤猎头岗位：打开后会自动过滤掉猎头发布的工作。猎头的岗位要求一般都非常高，实际投此类岗位是无意义的，以免浪费每天的100次机会。",
+            "7.可以在网站管理中打开通知权限,当停止时会自动发送桌面端通知提醒。",
             "😏",
             "脚本筛选项介绍：",
             "公司名包含：投递工作的公司名一定包含在当前集合中，模糊匹配，多个使用逗号分割。这个一般不用，如果使用了也就代表只投这些公司的岗位。例子：【阿里,华为】",
@@ -433,6 +438,14 @@ class OperationPanel {
         // 默认开启活跃校验
         this.activeSwitchBtnHandler(this.bossActiveState)
 
+        // 过滤猎头岗位
+        this.headhunterSwitchBtn = DOMApi.createTag("div", "过滤猎头岗位", btnCssText);
+        DOMApi.eventListener(this.headhunterSwitchBtn, "click", () => {
+            this.sendHeadhunterSwitchBtnHandler(!this.headhunterState)
+        })
+        this.sendHeadhunterSwitchBtnHandler(TampermonkeyApi.GmGetValue(ScriptConfig.SEND_HEADHUNTER_ENABLE, true));
+
+
         // 2.创建筛选条件输入框并添加到input容器中
         this.cnInInputLab = DOMApi.createInputTag("公司名包含", this.scriptConfig.getCompanyNameInclude());
         this.cnExInputLab = DOMApi.createInputTag("公司名排除", this.scriptConfig.getCompanyNameExclude());
@@ -506,7 +519,7 @@ class OperationPanel {
             })
             filter.appendChild(DOMApi.createTag("div", "", "clear:both"))
             cityAreaDropdown.appendChild(filter)
-            const bttt = [batchPushBtn, generateImgBtn, storeConfigBtn, this.activeSwitchBtn, this.sendSelfGreetSwitchBtn]
+            const bttt = [batchPushBtn, generateImgBtn, storeConfigBtn, this.activeSwitchBtn, this.sendSelfGreetSwitchBtn, this.headhunterSwitchBtn]
             bttt.forEach(item => {
                 jobConditionWrapper.appendChild(item);
             })
@@ -833,6 +846,20 @@ class OperationPanel {
         this.scriptConfig.setVal(ScriptConfig.SEND_SELF_GREET_ENABLE, isOpen)
     }
 
+    sendHeadhunterSwitchBtnHandler(isOpen) {
+        this.headhunterState = isOpen;
+        if (isOpen) {
+            this.headhunterSwitchBtn.innerText = "过滤猎头岗位:已开启";
+            this.headhunterSwitchBtn.style.backgroundColor = "rgb(215,254,195)";
+            this.headhunterSwitchBtn.style.color = "rgb(2,180,6)";
+        } else {
+            this.headhunterSwitchBtn.innerText = "过滤猎头岗位:已关闭";
+            this.headhunterSwitchBtn.style.backgroundColor = "rgb(251,224,224)";
+            this.headhunterSwitchBtn.style.color = "rgb(254,61,61)";
+        }
+        this.scriptConfig.setVal(ScriptConfig.SEND_HEADHUNTER_ENABLE, isOpen)
+    }
+
     publishCountChangeEventHandler(key, oldValue, newValue, isOtherScriptChange) {
         this.topTitle.textContent = `Boos直聘投递助手（${newValue}次） 记得 star⭐`;
         logger.info("投递次数变更事件", {key, oldValue, newValue, isOtherScriptChange})
@@ -864,6 +891,7 @@ class ScriptConfig extends TampermonkeyApi {
 
     static PUSH_MESSAGE = "push_message";
     static SEND_SELF_GREET_ENABLE = "sendSelfGreetEnable";
+    static SEND_HEADHUNTER_ENABLE = "sendHeadhunterEnable";
 
     // 公司名包含输入框lab
     static cnInKey = "companyNameInclude"
@@ -1043,6 +1071,12 @@ class BossDOMApi {
     static getJobTitle(jobTag) {
         let innerText = jobTag.querySelector(".job-title").innerText;
         return innerText.replace("\n", " ");
+    }
+
+    //是猎头发布的职位吗？
+    static isHeadhunter(jobTag) {
+        let jobTagIcon = jobTag.querySelector("img.job-tag-icon");
+        return !!jobTagIcon;
     }
 
     static getCompanyName(jobTag) {
@@ -1294,6 +1328,14 @@ class JobListPageHandler {
                 logger.info("当前boss活跃度：" + activeTimeDesc)
                 logger.info("当前job被过滤：【" + jobTitle + "】 原因：不满足活跃度检查")
                 return reject(new JobNotMatchExp())
+            }
+
+            // 猎头工作岗位检查
+            let headhunterCheck = TampermonkeyApi.GmGetValue(ScriptConfig.SEND_HEADHUNTER_ENABLE, true);
+            if (headhunterCheck && BossDOMApi.isHeadhunter(jobTag)) {
+                logger.info("当前工作为猎头发布：" + jobTitle);
+                logger.info("当前job被过滤：【" + jobTitle + "】 原因：为猎头发布的工作");
+                return reject(new JobNotMatchExp());
             }
 
             // 工作内容检查
