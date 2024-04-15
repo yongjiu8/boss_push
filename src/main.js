@@ -2,7 +2,7 @@
 // @name         忒星boss直聘批量简历投递+自动发送自定义消息[忒星修复魔改版]
 // @description  忒星boss直聘批量简历投递[忒星修复魔改版]
 // @namespace    yongjiu
-// @version      1.2.2
+// @version      1.2.3
 // @author       maple,Ocyss,忒星
 // @license      Apache License 2.0
 // @run-at       document-start
