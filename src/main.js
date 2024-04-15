@@ -318,6 +318,7 @@ class OperationPanel {
         this.activeSwitchBtn = null
         this.sendSelfGreetSwitchBtn = null
         this.headhunterSwitchBtn = null
+        this.bossOnlineSwitchBtn = null
 
         // inputLab
         // 公司名包含输入框lab
@@ -344,6 +345,10 @@ class OperationPanel {
 
         // boss活跃度检测
         this.bossActiveState = true;
+
+        //hr在线检测
+        this.bossOnlineState = true;
+
         // 发送自定义招呼语
         this.sendSelfGreet = false;
 
@@ -438,6 +443,15 @@ class OperationPanel {
         // 默认开启活跃校验
         this.activeSwitchBtnHandler(this.bossActiveState)
 
+
+        // 过滤HR在线按钮
+        this.bossOnlineSwitchBtn = DOMApi.createTag("div", "HR在线过滤", btnCssText);
+        DOMApi.eventListener(this.bossOnlineSwitchBtn, "click", () => {
+            this.bossOnlineSwitchBtnHandler(!this.bossOnlineState)
+        })
+        //默认开启HR在线
+        this.bossOnlineSwitchBtnHandler(this.bossOnlineState)
+
         // 过滤猎头岗位
         this.headhunterSwitchBtn = DOMApi.createTag("div", "过滤猎头岗位", btnCssText);
         DOMApi.eventListener(this.headhunterSwitchBtn, "click", () => {
@@ -519,7 +533,7 @@ class OperationPanel {
             })
             filter.appendChild(DOMApi.createTag("div", "", "clear:both"))
             cityAreaDropdown.appendChild(filter)
-            const bttt = [batchPushBtn, generateImgBtn, storeConfigBtn, this.activeSwitchBtn, this.sendSelfGreetSwitchBtn, this.headhunterSwitchBtn]
+            const bttt = [batchPushBtn, generateImgBtn, storeConfigBtn, this.activeSwitchBtn, this.bossOnlineSwitchBtn, this.sendSelfGreetSwitchBtn, this.headhunterSwitchBtn]
             bttt.forEach(item => {
                 jobConditionWrapper.appendChild(item);
             })
@@ -832,6 +846,21 @@ class OperationPanel {
         this.scriptConfig.setVal(ScriptConfig.ACTIVE_ENABLE, isOpen)
     }
 
+    //检查是否在线
+    bossOnlineSwitchBtnHandler(isOpen) {
+        this.bossOnlineState = isOpen;
+        if (this.bossOnlineState) {
+            this.bossOnlineSwitchBtn.innerText = "过滤HR在线:已开启";
+            this.bossOnlineSwitchBtn.style.backgroundColor = "rgb(215,254,195)";
+            this.bossOnlineSwitchBtn.style.color = "rgb(2,180,6)";
+        } else {
+            this.bossOnlineSwitchBtn.innerText = "过滤HR在线:已关闭";
+            this.bossOnlineSwitchBtn.style.backgroundColor = "rgb(251,224,224)";
+            this.bossOnlineSwitchBtn.style.color = "rgb(254,61,61)";
+        }
+        this.scriptConfig.setVal(ScriptConfig.BOSS_ONLINE_ENABLE, isOpen)
+    }
+
     sendSelfGreetSwitchBtnHandler(isOpen) {
         this.sendSelfGreet = isOpen;
         if (isOpen) {
@@ -892,6 +921,9 @@ class ScriptConfig extends TampermonkeyApi {
     static PUSH_MESSAGE = "push_message";
     static SEND_SELF_GREET_ENABLE = "sendSelfGreetEnable";
     static SEND_HEADHUNTER_ENABLE = "sendHeadhunterEnable";
+
+    //HR在线检测
+    static BOSS_ONLINE_ENABLE = "bossOnlineEnable";
 
     // 公司名包含输入框lab
     static cnInKey = "companyNameInclude"
@@ -1321,6 +1353,14 @@ class JobListPageHandler {
 
         return new Promise((resolve, reject) => {
 
+            //检查是否在线
+            let bossOnlineCheck = TampermonkeyApi.GmGetValue(ScriptConfig.BOSS_ONLINE_ENABLE, true);
+            logger.info("当前职位【" + jobTitle + "】HR在线状态：" + jobCardJson.online)
+            if (bossOnlineCheck && !jobCardJson.online) {
+                logger.info("当前job被过滤：【" + jobTitle + "】 HR原因：不在线")
+                return reject(new JobNotMatchExp())
+            }
+
             // 工作详情活跃度检查
             let activeCheck = TampermonkeyApi.GmGetValue(ScriptConfig.ACTIVE_ENABLE, true);
             let activeTimeDesc = jobCardJson.activeTimeDesc;
@@ -1346,6 +1386,7 @@ class JobListPageHandler {
                 logger.info(`当前job被过滤：【${jobTitle}】 原因：不满足工作内容(${jobContentMismatch})`)
                 return reject(new JobNotMatchExp())
             }
+
 
             setTimeout(() => {
                 // 获取不同的延时，避免后面投递时一起导致频繁
