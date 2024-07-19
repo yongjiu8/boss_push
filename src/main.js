@@ -2,7 +2,7 @@
 // @name         忒星boss直聘批量简历投递+自动发送自定义消息[忒星修复魔改版]
 // @description  忒星boss直聘批量简历投递[忒星修复魔改版]
 // @namespace    yongjiu
-// @version      1.2.3
+// @version      1.2.4
 // @author       maple,Ocyss,忒星
 // @license      Apache License 2.0
 // @run-at       document-start
@@ -1470,7 +1470,7 @@ class JobListPageHandler {
 
                 this.operationPanel.refreshShow("正在投递-->" + jobTitle)
                 // 投递请求
-                axios.post(url, null, {headers: {"Zp_token": Tools.getCookieValue("geek_zp_token")}})
+                axios.post(url, null, {headers: {"Zp_token": Tools.getCookieValue("bst")}})
                     .then(resp => {
                         if (resp.data.code === 1 && resp.data?.zpData?.bizData?.chatRemindDialog?.content) {
                             // 某些条件不满足，boss限制投递，无需重试，在结果处理器中处理
